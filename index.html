@@ -120,7 +120,7 @@
         radial-gradient(circle at 10% 20%,rgba(47,111,237,.08),transparent 23%),
         linear-gradient(180deg,#fff 0%,#fbfcff 100%);
     }
-    .model-stage-inner{position:relative; width:1280px; height:760px; padding:0}
+    .model-stage-inner{position:relative; width:1280px; height:760px; padding:0; transform:scale(var(--model-scale,1)); transform-origin:top left; transition:transform .25s ease}
     .model-svg{
       display:block; width:100%; height:auto; transform-origin:center top;
       transition:transform .45s ease, filter .45s ease;
@@ -467,6 +467,8 @@
             <button class="mode-btn active" data-mode="2d">2D 结构</button>
             <button class="mode-btn" data-mode="depth">3D 深度</button>
           </div>
+          <button class="ghost-btn" id="fitBtn">适应窗口</button>
+          <button class="ghost-btn" id="originalBtn">原始尺寸</button>
           <button class="ghost-btn" id="showAllBtn">显示全部</button>
         </div>
       </div>
@@ -1137,6 +1139,23 @@
     selectPath(s.path); renderCaseModel(index);
   }
 
+  function setModelFit(enabled){
+    const stage=$('#modelStage'), inner=document.querySelector('.model-stage-inner');
+    if(!stage||!inner) return;
+    if(enabled){
+      const scale=Math.min(1,Math.max(.22,(stage.clientWidth-2)/1280));
+      inner.style.transform=`scale(${scale})`;
+      stage.style.height=`${Math.ceil(760*scale)+8}px`;
+      stage.style.minHeight='0px';
+      stage.dataset.fit='true';
+    } else {
+      inner.style.transform='scale(1)';
+      stage.style.height='760px';
+      stage.style.minHeight='680px';
+      stage.dataset.fit='false';
+    }
+  }
+
   function setupControls(){
     $$('.mode-btn').forEach(b => b.addEventListener('click', () => {
       $$('.mode-btn').forEach(x => x.classList.remove('active')); b.classList.add('active');
@@ -1168,7 +1187,10 @@
       $('.figure-intro strong').textContent=titles[b.dataset.modelView];
       $('.figure-intro p').textContent=intro[b.dataset.modelView];
     }));
+    $('#fitBtn').addEventListener('click', () => setModelFit(true));
+    $('#originalBtn').addEventListener('click', () => setModelFit(false));
     $('#showAllBtn').addEventListener('click', () => selectPath('full'));
+    window.addEventListener('resize', () => { if($('#modelStage')?.dataset.fit!=='false') setModelFit(true); });
     $('#resetBtn').addEventListener('click', () => { clearHighlights(); $('#detailTitle').textContent='选择一个模型要素'; $('#detailSubtitle').textContent='查看它的全部关联路径'; $('#detailBadge').textContent='SEIDR-P'; $('#detailBody').innerHTML='<div class="detail-section"><p>点击左侧要素或中央模型节点，查看它的关联路径。</p></div>'; });
     $('#playCaseBtn').addEventListener('click', () => { document.querySelector('#case').scrollIntoView({behavior:'smooth'}); let i=0; const timer=setInterval(()=>{ showCase(i); i++; if(i>=caseStages.length) clearInterval(timer); },1500); });
     $('#closeModal').addEventListener('click', () => $('#pathModal').classList.remove('open'));
@@ -1234,7 +1256,7 @@
     $('#betaLabel').innerHTML=isMass?'传播率 β <span>1/(人·天)</span>':'传播率 β <span>/天</span>';
   }
 
-  renderElements(); renderShowcase(); renderPathAtlas(); renderCase(); renderCaseModel(); setupControls(); updateFormulaMode(); calculate();
+  renderElements(); renderShowcase(); renderPathAtlas(); renderCase(); renderCaseModel(); setupControls(); updateFormulaMode(); calculate(); setModelFit(true);
   $('#calcBtn').addEventListener('click',calculate); $('#estimateBtn').addEventListener('click',estimateParams); $('#formulaMode').addEventListener('change',()=>{updateFormulaMode();calculate();});
   ['#N','#S','#I','#beta','#gamma'].forEach(id => $(id).addEventListener('input',calculate));
 })();
